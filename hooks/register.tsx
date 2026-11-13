@@ -2,28 +2,42 @@ import { atom, read, update } from 'claude-code'
 import type { EngineInterface, Register } from 'claude-code'
 
 import type { PmStatus } from '../types'
+import { PATTERNS_MD, SKILL_MD, TEMPLATES_MD } from './skill'
 
-const status = atom({ plugin: 'prompt-master', key: 'status' } as const, 'idle' as PmStatus)
-const original = atom({ plugin: 'prompt-master', key: 'original' } as const, null as string | null)
+const status = atom({ plugin: 'prompt-master-button', key: 'status' } as const, 'idle' as PmStatus)
+const original = atom({ plugin: 'prompt-master-button', key: 'original' } as const, null as string | null)
 
-const SYSTEM = `You rewrite a user's rough prompt for an AI assistant into a better prompt.
-Rules:
-- Keep the user's intent, facts, names, file paths and code exactly. Never invent requirements.
-- State the goal first, then context, constraints, and the expected output format.
-- Fix spelling and grammar. Remove filler. Keep it as short as clarity allows.
-- If the rough prompt is missing a key detail, add a short line "Ask me if unclear: <the detail>".
-- Write in the user's voice (first person, addressed to the assistant).
-- Output ONLY the rewritten prompt. No preamble, no quotes, no explanation.`
+// One-click mode overrides the skill's interactive parts: no questions, and
+// the reply goes straight into the prompt box, so it must be the prompt alone.
+const ONE_CLICK = `You are running inside a one-click "Prompt Master" button. The user's rough prompt sits in their chat box. Your reply replaces it.
+These rules override any rule above that conflicts:
+- Target tool: Claude, unless the rough prompt names another tool. Then target that tool.
+- NEVER ask clarifying questions. Make the most reasonable assumption. Mark each missing detail the user must supply as a bracketed placeholder, such as [AUDIENCE].
+- Keep the user's facts, names, file paths and code exactly. Never invent requirements.
+- If the rough prompt holds two tasks, output both prompts one after the other, headed "Prompt 1:" and "Prompt 2:".
+- Output ONLY the finished prompt text. No code fence, no "Target" line, no explanation, no preamble.`
+
+const SYSTEM = [
+  { text: SKILL_MD },
+  { text: '# references/templates.md\n\n' + TEMPLATES_MD },
+  { text: '# references/patterns.md\n\n' + PATTERNS_MD, cache: true },
+  { text: ONE_CLICK },
+] as const
+
+function stripFence(text: string): string {
+  const m = text.match(/^```[\w-]*\n([\s\S]*?)\n```$/)
+  return (m?.[1] ?? text).trim()
+}
 
 async function rewrite($: EngineInterface, rough: string): Promise<string | null> {
   const r = await $.model.complete({
     model: 'sonnet',
     system: SYSTEM,
     prompt: `Rough prompt:\n<<<\n${rough}\n>>>`,
-    maxTokens: 2000,
+    maxTokens: 4000,
   })
   if (!r.isAnswered) return null
-  const text = r.text.trim()
+  const text = stripFence(r.text.trim())
   return text.length ? text : null
 }
 

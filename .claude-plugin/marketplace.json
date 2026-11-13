@@ -1,5 +1,5 @@
 {
   "name": "prompt-master",
   "owner": { "name": "CapeGeorge" },
-  "plugins": [{ "name": "prompt-master", "source": "./" }]
+  "plugins": [{ "name": "prompt-master-button", "source": "./" }]
 }

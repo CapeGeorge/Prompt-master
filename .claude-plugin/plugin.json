@@ -1,1 +1,1 @@
-{ "name": "prompt-master", "version": "0.1.0", "description": "One-click rewrite of a rough prompt into a clear, complete one before you send it.", "license": "MIT", "types": "./types/index.d.ts" }
+{ "name": "prompt-master-button", "version": "0.2.0", "description": "One-click button that rewrites your draft with the Prompt Master rules, in place, before you send it.", "license": "MIT", "types": "./types/index.d.ts" }
